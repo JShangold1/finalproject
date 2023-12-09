@@ -1,66 +1,64 @@
-from flask import Flask, render_template, request
+import yfinance as yf
+import pandas as pd
+from sklearn.linear_model import LinearRegression
+import numpy as np
 import requests
 from bs4 import BeautifulSoup
 
-app = Flask(__name__)
-
-def scrape_stock_data(stock_symbol):
-    url = f"https://finance.yahoo.com/quote/{stock_symbol}"
+def get_sp500_symbols():
+    # Fetching the list of S&P 500 stocks from Wikipedia
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
     response = requests.get(url)
+    soup = BeautifulSoup(response.text, 'html.parser')
+    table = soup.find('table', {'class': 'wikitable'})
+    symbols = [row.find_all('td')[0].text.strip() for row in table.find_all('tr')[1:]]
+    return symbols
 
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
+def get_recommendation(investment_amount, risk_score, timeline_days):
+    # Fetching S&P 500 stock symbols
+    stock_symbols = get_sp500_symbols()
 
-        # Extract relevant information from the Yahoo Finance page
-        company_name = soup.find('h1', {'data-reactid': '7'}).text
-        latest_price = soup.find('span', {'data-reactid': '50'}).text
+    # Fetching historical stock data and training models for each stock
+    valid_stock_data = {}
+    for symbol in stock_symbols:
+        stock_data = yf.download(symbol, period=f"{timeline_days}d")
 
-        stock_data = {
-            'company_name': company_name,
-            'latest_price': latest_price,
-        }
+        # Check if the stock_data is not empty
+        if not stock_data.empty:
+            stock_data['Date'] = stock_data.index
+            stock_data['Date'] = pd.to_datetime(stock_data['Date']).astype('int64') / 10**9
+            X = stock_data[['Date']].values
+            y = stock_data['Close'].values
 
-        return stock_data
+            # Training a linear regression model for each stock
+            model = LinearRegression()
+            model.fit(X, y)
+            stock_data['Predicted'] = model.predict(X)
 
-    return None
+            valid_stock_data[symbol] = stock_data
 
-def scrape_stock_projections(stock_symbol, interval):
-    url = f"https://finance.yahoo.com/quote/{stock_symbol}/analysis?p={stock_symbol}"
-    response = requests.get(url)
+    if not valid_stock_data:
+        # No valid stock data found
+        raise ValueError("No valid stock data found. Please check your stock symbols or try again later.")
 
-    if response.status_code == 200:
-        soup = BeautifulSoup(response.content, 'html.parser')
+    # Selecting the stock with the highest predicted growth rate
+    selected_stock = max(valid_stock_data.keys(), key=lambda symbol: (valid_stock_data[symbol]['Predicted'].iloc[-1] - valid_stock_data[symbol]['Close'].iloc[-1]) / valid_stock_data[symbol]['Close'].iloc[-1])
 
-        projections = []
+    # Calculating the expected total amount including the initial investment
+    final_date = valid_stock_data[selected_stock]['Date'].max() + (timeline_days * 24 * 60 * 60)
+    expected_final_price = model.predict(np.array([[final_date]]))[0]
+    expected_total_amount = investment_amount + (investment_amount * (expected_final_price - valid_stock_data[selected_stock]['Close'].iloc[-1]) / valid_stock_data[selected_stock]['Close'].iloc[-1])
 
-        # Example: Extract projections from elements with a specific class
-        projection_elements = soup.find_all('td', class_='data-col2')
-        for element in projection_elements:
-            projection = element.get_text(strip=True)
-            projections.append(projection)
+    return selected_stock, expected_total_amount
 
-        return projections
+# Taking user inputs
+investment_amount = float(input("Enter your investment amount: "))
+risk_score = int(input("Enter your risk score (1-10): "))
+timeline_days = int(input("Enter your investment timeline in days: "))
 
-    return None
+# Getting recommendation
+recommended_stock, expected_total_amount = get_recommendation(investment_amount, risk_score, timeline_days)
 
-# ... (existing code)
-
-# Update the get_stock_info route
-@app.route('/get_stock_info', methods=['POST'])
-def get_stock_info():
-    stock_symbol = request.form.get('stock_symbol')
-    initial_investment = float(request.form.get('initial_investment'))
-
-    # Use web scraping to get stock information and projections
-    stock_data = scrape_stock_data(stock_symbol)
-    stock_projections = scrape_stock_projections(stock_symbol, interval=1)  # Change the interval as needed
-
-    if stock_data and stock_projections:
-        stock_data['symbol'] = stock_symbol
-        stock_data['projections'] = stock_projections
-
-        return render_template('index.html', stock_info=stock_data, initial_investment=initial_investment)
-    else:
-        return render_template('index.html', stock_info=None)
-
-# ... (existing code)
+# Displaying recommendation
+print(f"\nRecommended Stock: {recommended_stock}")
+print(f"Expected Total Amount: ${expected_total_amount:.2f}")
