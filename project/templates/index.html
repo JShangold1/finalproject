@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Information and Simulation</title>
+</head>
+<body>
+    <h1>Stock Information and Simulation</h1>
+    
+    <form method="POST" action="{{ url_for('get_stock_info') }}">
+        <label for="stock_symbol">Enter Stock Symbol:</label>
+        <input type="text" id="stock_symbol" name="stock_symbol" required>
+        
+        <label for="initial_investment">Initial Investment:</label>
+        <input type="number" id="initial_investment" name="initial_investment" required>
+        
+        <button type="submit">Get Info</button>
+    </form>
+
+    {% if stock_info %}
+        <div>
+            <h2>{{ stock_info['symbol'] }}</h2>
+            <p>{{ stock_info['company_name'] }}</p>
+            <p>Latest Price: {{ stock_info['latest_price'] }}</p>
+
+            <h3>Stock Projections</h3>
+            <ul>
+                <li>1 Month: {{ stock_info['projection_1_month'] }}</li>
+                <li>6 Months: {{ stock_info['projection_6_months'] }}</li>
+                <li>1 Year: {{ stock_info['projection_1_year'] }}</li>
+                <li>5 Years: {{ stock_info['projection_5_years'] }}</li>
+            </ul>
+
+            <form method="POST" action="{{ url_for('simulate_investment') }}">
+                <input type="hidden" name="stock_symbol" value="{{ stock_info['symbol'] }}">
+                <input type="hidden" name="initial_investment" value="{{ initial_investment }}">
+                <button type="submit">Simulate Investment</button>
+            </form>
+        </div>
+    {% endif %}
+</body>
+</html>
