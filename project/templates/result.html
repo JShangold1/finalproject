@@ -2,4 +2,14 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Recommendation Result</title>
+</head>
+<body>
+    <h1>Stock Recommendation Result</h1>
+    <p>Recommended Stock: {{ recommended_stock }}</p>
+    <p>Expected Total Amount: ${{ expected_total_amount | round(2) }}</p>
+    <br>
+    <a href="/">Go back to input</a>
+</body>
+</html>
