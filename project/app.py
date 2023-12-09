@@ -1,9 +1,12 @@
+from flask import Flask, render_template, request
+from bs4 import BeautifulSoup
+import requests
 import yfinance as yf
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 import numpy as np
-import requests
-from bs4 import BeautifulSoup
+
+app = Flask(__name__)
 
 def get_sp500_symbols():
     # Fetching the list of S&P 500 stocks from Wikipedia
@@ -51,14 +54,25 @@ def get_recommendation(investment_amount, risk_score, timeline_days):
 
     return selected_stock, expected_total_amount
 
-# Taking user inputs
-investment_amount = float(input("Enter your investment amount: "))
-risk_score = int(input("Enter your risk score (1-10): "))
-timeline_days = int(input("Enter your investment timeline in days: "))
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-# Getting recommendation
-recommended_stock, expected_total_amount = get_recommendation(investment_amount, risk_score, timeline_days)
+@app.route('/recommend', methods=['POST'])
+def recommend():
+    try:
+        investment_amount = float(request.form['investment_amount'])
+        risk_score = int(request.form['risk_score'])
+        timeline_days = int(request.form['timeline_days'])
 
-# Displaying recommendation
-print(f"\nRecommended Stock: {recommended_stock}")
-print(f"Expected Total Amount: ${expected_total_amount:.2f}")
+        recommended_stock, expected_total_amount = get_recommendation(investment_amount, risk_score, timeline_days)
+
+        return render_template('result.html', recommended_stock=recommended_stock, expected_total_amount=expected_total_amount)
+
+    except ValueError as e:
+        error_message = str(e)
+        return render_template('index.html', error_message=error_message)
+
+if __name__ == '__main__':
+    app.run(debug=True)
+

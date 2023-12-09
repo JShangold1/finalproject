@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stock Simulation</title>
+    <title>Stock Recommendation</title>
 </head>
 <body>
-    <h1>Stock Simulation</h1>
-    <form action="/simulate" method="post">
-        <label for="initial_investment">Initial Investment:</label>
-        <input type="number" name="initial_investment" step="any" required><br>
+    <h1>Stock Recommendation</h1>
+    {% if error_message %}
+        <p style="color: red;">{{ error_message }}</p>
+    {% endif %}
+    <form action="/recommend" method="post">
+        <label for="investment_amount">Enter your investment amount:</label>
+        <input type="text" name="investment_amount" required><br>
 
-        <label for="risk_score">Risk Tolerance (1-10):</label>
-        <select name="risk_score" required>
-            {% for score in range(1, 11) %}
-                <option value="{{ score }}">{{ score }}</option>
-            {% endfor %}
-        </select><br>
+        <label for="risk_score">Enter your risk score (1-10):</label>
+        <input type="text" name="risk_score" required><br>
 
-        <label for="time_horizon">Time Horizon (in days):</label>
-        <input type="number" name="time_horizon" required><br>
+        <label for="timeline_days">Enter your investment timeline in days:</label>
+        <input type="text" name="timeline_days" required><br>
 
-        <input type="submit" value="Simulate">
+        <button type="submit">Get Recommendation</button>
     </form>
 </body>
 </html>
-
