@@ -1,4 +1,3 @@
-# READ ME
 # Stock Recommender
 # By: Jack Shangold and Alec Leyva
 
